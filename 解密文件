@@ -1,346 +1,154 @@
-#ifndef CRYPTO_H
-#define CRYPTO_H
-
-#include <string>
-
-class Crypto {
-public:
-    void setKey(int key);
-    std::string encrypt(const std::string& text);
-    std::string decrypt(const std::string& text);
-    
-private:
-    int key;
-    char encryptChar(char c);
-    char decryptChar(char c);
-};
-
-
-
-
-
-
-
-
-
-#include "Crypto.h"
-#include <string>
-
-void Crypto::setKey(int k) {
-    key = k;
-}
-
-std::string Crypto::encrypt(const std::string& text) {
-    std::string result;
-    for (char c : text) {
-        result += encryptChar(c);
-    }
-    return result;
-}
-
-std::string Crypto::decrypt(const std::string& text) {
-    std::string result;
-    for (char c : text) {
-        result += decryptChar(c);
-    }
-    return result;
-}
-
-char Crypto::encryptChar(char c) {
-    if (std::isalpha(c)) {
-        char base = std::islower(c) ? 'a' : 'A';
-        return (c - base + key) % 26 + base;
-    }
-    return c; 
-}
-
-char Crypto::decryptChar(char c) {
-    if (std::isalpha(c)) {
-        char base = std::islower(c) ? 'a' : 'A';
-        return (c - base - key + 26) % 26 + base; 
-
-    }
-    return c;
-}
-
-
-
-
-
-
-
-#ifndef FILEHANDLER_H
-#define FILEHANDLER_H
-
-#include <string>
-
-class FileHandler {
-public:
-    bool fileExists(const std::string& filename);
-    std::string readFile(const std::string& filename);
-    bool writeFile(const std::string& filename, const std::string& content);
-};
-
-
-
-
-
-#include "FileHandler.h"
-#include <fstream>
 #include <iostream>
+#include <string>
+#include <fstream>
 
-bool FileHandler::fileExists(const std::string& filename) {
-    std::ifstream file(filename);
-    return file.good();
+using namespace std;
+
+
+string caesarEncrypt(string text, int key) {
+    string result = "";
+    
+    for (int i = 0; i < text.length(); i++) {
+        char c = text[i];
+        
+        if (c >= 'A' && c <= 'Z') {
+            char new_char = c + key;
+            if (new_char > 'Z') new_char = new_char - 26;
+            if (new_char < 'A') new_char = new_char + 26;
+            result += new_char;
+        }
+        else if (c >= 'a' && c <= 'z') {
+            char new_char = c + key;
+            if (new_char > 'z') new_char = new_char - 26;
+            if (new_char < 'a') new_char = new_char + 26;
+            result += new_char;
+        }
+        else {
+            result += c;
+        }
+    }
+    
+    return result;
 }
 
-std::string FileHandler::readFile(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("无法打开文件: " + filename);
-    }
+
+string caesarDecrypt(string text, int key) {
+    return caesarEncrypt(text, -key);
+}
+
+
+string readFile(string filepath) {
+    ifstream file(filepath);
+    string content = "";
+    string line;
     
-    std::string content;
-    std::string line;
-    while (std::getline(file, line)) {
-        content += line + "\n";
+    if (file.is_open()) {
+        while (getline(file, line)) {
+            content += line + "\n";
+        }
+        file.close();
     }
-    
-    if (!content.empty()) {
-        content.pop_back();
-    }
-    
-    file.close();
     return content;
 }
 
-bool FileHandler::writeFile(const std::string& filename, const std::string& content) {
-    std::ofstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "错误: 无法创建文件 " << filename << std::endl;
-        return false;
+
+bool writeFile(string filepath, string content) {
+    ofstream file(filepath);
+    if (file.is_open()) {
+        file << content;
+        file.close();
+        return true;
     }
-    
-    file << content;
-    file.close();
-    return true;
+    return false;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-#ifndef MENU_H
-#define MENU_H
-
-#include <string>
-
-class Menu {
-public:
-    void handleUserInput();
-    
-private:
-    void showMainMenu();
-    void textEncryption();
-    void textDecryption();
-    void fileEncryption();
-    void fileDecryption();
-    std::string getTextInput(const std::string& prompt);
-    int getKeyInput();
-    std::string getFilePath(const std::string& prompt);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "Menu.h"
-#include "Crypto.h"
-#include "FileHandler.h"
-#include <iostream>
-#include <limits>
-
-void Menu::showMainMenu() {
-    std::cout << "\n=== 文本加密解密工具 ===" << std::endl;
-    std::cout << "1. 文本加密" << std::endl;
-    std::cout << "2. 文本解密" << std::endl;
-    std::cout << "3. 文件加密" << std::endl;
-    std::cout << "4. 文件解密" << std::endl;
-    std::cout << "5. 退出" << std::endl;
-    std::cout << "请选择功能 (1-5): ";
-}
-
-void Menu::handleUserInput() {
+int main() {
     int choice;
     
     while (true) {
-        showMainMenu();
-        std::cin >> choice;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        cout << "\n=== 加密解密工具 ===" << endl;
+        cout << "1. 文本加密" << endl;
+        cout << "2. 文本解密" << endl;
+        cout << "3. 文件加密" << endl;
+        cout << "4. 文件解密" << endl;
+        cout << "0. 退出" << endl;
+        cout << "请选择: ";
+        cin >> choice;
         
-        switch (choice) {
-            case 1:
-                textEncryption();
-                break;
-            case 2:
-                textDecryption();
-                break;
-            case 3:
-                fileEncryption();
-                break;
-            case 4:
-                fileDecryption();
-                break;
-            case 5:
-                std::cout << "已结束！" << std::endl;
-                return;
-            default:
-                std::cout << "错误，请重新输入！" << std::endl;
+        if (choice == 0) 
+            cout << "结束" << endl;
+            break;
+        }
+        else if (choice == 1) {
+            string text;
+            int key;
+            cout << "输入要加密的文本: ";
+            cin.ignore();
+            getline(cin, text);
+            cout << "输入密钥: ";
+            cin >> key;
+            string result = caesarEncrypt(text, key);
+            cout << "加密结果: " << result << endl;
+        }
+        else if (choice == 2) {
+            string text;
+            int key;
+            cout << "输入要解密的文本: ";
+            cin.ignore();
+            getline(cin, text);
+            cout << "输入密钥: ";
+            cin >> key;
+            string result = caesarDecrypt(text, key);
+            cout << "解密结果: " << result << endl;
+        }
+        else if (choice == 3) {
+            string inputPath, outputPath;
+            int key;
+            cout << "输入要加密的文件: ";
+            cin >> inputPath;
+            cout << "输入密钥: ";
+            cin >> key;
+            cout << "输入输出文件: ";
+            cin >> outputPath;
+            
+            string content = readFile(inputPath);
+            if (content != "") {
+                string encrypted = caesarEncrypt(content, key);
+                if (writeFile(outputPath, encrypted)) {
+                    cout << "加密成功" << endl;
+                } else {
+                    cout << "保存失败" << endl;
+                }
+            } else {
+                cout << "读取失败" << endl;
+            }
+        }
+        else if (choice == 4) {
+            string inputPath, outputPath;
+            int key;
+            cout << "输入要解密的文件: ";
+            cin >> inputPath;
+            cout << "输入密钥: ";
+            cin >> key;
+            cout << "输入输出文件: ";
+            cin >> outputPath;
+            
+            string content = readFile(inputPath);
+            if (content != "") {
+                string decrypted = caesarDecrypt(content, key);
+                if (writeFile(outputPath, decrypted)) {
+                    cout << "文件解密成功！" << endl;
+                } else {
+                    cout << "保存失败" << endl;
+                }
+            } else {
+                cout << "读取失败" << endl;
+            }
+        }
+        else {
+            cout << "无效选择" << endl;
         }
     }
-}
-
-void Menu::textEncryption() {
-    std::cout << "\n--- 文本加密 ---" << std::endl;
-    
-    std::string text = getTextInput("请输入要加密的文本: ");
-    int key = getKeyInput();
-    
-    Crypto crypto;
-    crypto.setKey(key);
-    std::string encrypted = crypto.encrypt(text);
-    
-    std::cout << "加密结果: " << encrypted << std::endl;
-}
-
-void Menu::textDecryption() {
-    std::cout << "\n--- 文本解密 ---" << std::endl;
-    
-    std::string text = getTextInput("请输入要解密的文本: ");
-    int key = getKeyInput();
-    
-    Crypto crypto;
-    crypto.setKey(key);
-    std::string decrypted = crypto.decrypt(text);
-    
-    std::cout << "解密结果: " << decrypted << std::endl;
-}
-
-void Menu::fileEncryption() {
-    std::cout << "\n--- 文件加密 ---" << std::endl;
-    
-    std::string inputFile = getFilePath("请输入要加密的文件路径: ");
-    std::string outputFile = getFilePath("请输入输出文件路径: ");
-    int key = getKeyInput();
-    
-    FileHandler fileHandler;
-    Crypto crypto;
-    
-    if (!fileHandler.fileExists(inputFile)) {
-        std::cout << "错误: 文件不存在 - " << inputFile << std::endl;
-        return;
-    }
-    
-    try {
-        std::string content = fileHandler.readFile(inputFile);
-        crypto.setKey(key);
-        std::string encrypted = crypto.encrypt(content);
-        
-        if (fileHandler.writeFile(outputFile, encrypted)) {
-            std::cout << "加密结果已保存到: " << outputFile << std::endl;
-        }
-    } catch (const std::exception& e) {
-        std::cout << "错误: " << e.what() << std::endl;
-    }
-}
-
-void Menu::fileDecryption() {
-    std::cout << "\n--- 文件解密 ---" << std::endl;
-    
-    std::string inputFile = getFilePath("请输入要解密的文件路径: ");
-    std::string outputFile = getFilePath("请输入输出文件路径: ");
-    int key = getKeyInput();
-    
-    FileHandler fileHandler;
-    Crypto crypto;
-    
-    if (!fileHandler.fileExists(inputFile)) {
-        std::cout << "错误: 文件不存在 - " << inputFile << std::endl;
-        return;
-    }
-    
-    try {
-        std::string content = fileHandler.readFile(inputFile);
-        crypto.setKey(key);
-        std::string decrypted = crypto.decrypt(content);
-        
-        if (fileHandler.writeFile(outputFile, decrypted)) {
-            std::cout << "解密结果已保存到: " << outputFile << std::endl;
-        }
-    } catch (const std::exception& e) {
-        std::cout << "错误: " << e.what() << std::endl;
-    }
-}
-
-std::string Menu::getTextInput(const std::string& prompt) {
-    std::string text;
-    std::cout << prompt;
-    std::getline(std::cin, text);
-    return text;
-}
-
-int Menu::getKeyInput() {
-    int key;
-    std::cout << "请输入密钥: ";
-    std::cin >> key;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    return key;
-}
-
-std::string Menu::getFilePath(const std::string& prompt) {
-    std::string path;
-    std::cout << prompt;
-    std::getline(std::cin, path);
-    return path;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "Menu.h"
-#include <iostream>
-
-int main() {
-    std::cout << " 文本加密解密系统" << std::endl;
-    
-    Menu menu;
-    menu.handleUserInput();
     
     return 0;
 }
-
-
