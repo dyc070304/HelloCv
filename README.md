@@ -213,13 +213,74 @@ pkg-config --modversion opencv4
 
 
 
+解密文件的构建与运行：
+(1):
+文本加密解密：凯撒密码算法
+文件加密解密
+ 
+跨平台构建使用CMake管理项目
+面向对象设计
+
+项目结构
+
+```
+CryptoTool/
+├── CMakeLists.txt              
+├── include/                   
+│   ├── Crypto.h               
+│   ├── FileHandler.h          
+│   └── Menu.h                 
+├── src/                       
+│   ├── main.cpp              
+│   ├── Crypto.cpp            
+│   ├── FileHandler.cpp       
+│   └── Menu.cpp              
+├── build/                     
+├── input.txt                 
+├── encrypted.txt         
+└── decrypted.txt       
+```
+
+核心类设计
+
+Crypto类 - 加密解密核心
+
+class Crypto {
+public:
+    std::string caesarEncrypt(const std::string& text, int key);
+    std::string caesarDecrypt(const std::string& text, int key);
+};
+
+
+职责：实现凯撒密码算法，处理字符串的加密和解密逻辑。
+
+FileHandler类 - 文件操作
+
+
+class FileHandler {
+public:
+    std::string readFile(const std::string& filepath);
+    bool writeFile(const std::string& filepath, const std::string& content);
+};
+```
+
+职责：负责文件的读取和写入操作，提供文件IO功能。
+
+Menu类 - 用户界面
+
+
+class Menu {
+public:
+    void showMainMenu();
+    void handleChoice(int choice);
+private:
+    Crypto crypto;
+    FileHandler fileHandler;
+    // 私有方法处理具体功能
+};
+
+
+职责：显示命令行菜单，处理用户输入，协调加密解密和文件操作。
 
 
 
-
-
-
-
-
-
-解密文档设计思路：
