@@ -1,0 +1,97 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <vector>
+
+using namespace cv;
+using namespace std;
+
+int main() {
+    VideoCapture cap("TrafficLight.mp4");
+   
+    Mat frame, hsv, red_mask, green_mask, display;
+    
+    while (true) {
+        cap >> frame;
+        if (frame.empty()) break;
+        
+        frame.copyTo(display);
+        cvtColor(frame, hsv, COLOR_BGR2HSV);
+        
+     
+        Mat red_mask1, red_mask2;
+        inRange(hsv, Scalar(0, 70, 50), Scalar(10, 255, 255), red_mask1);
+        inRange(hsv, Scalar(170, 70, 50), Scalar(180, 255, 255), red_mask2);
+        red_mask = red_mask1 | red_mask2;
+        
+
+        Mat kernel_red = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
+        morphologyEx(red_mask, red_mask, MORPH_OPEN, kernel_red);
+        morphologyEx(red_mask, red_mask, MORPH_CLOSE, kernel_red);
+        
+        
+        inRange(hsv, Scalar(50, 95, 95), Scalar(115, 255, 255), green_mask);
+        
+   
+        Mat kernel_green = getStructuringElement(MORPH_ELLIPSE, Size(7, 7));
+        morphologyEx(green_mask, green_mask, MORPH_OPEN, kernel_green);
+        morphologyEx(green_mask, green_mask, MORPH_CLOSE, kernel_green);
+        
+    
+        vector<vector<Point>> contours;
+        findContours(red_mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+        Rect largest_red;
+        double max_red_area = 0;
+        for(auto& contour : contours) {
+            double area = contourArea(contour);
+            if(area > 100 && area > max_red_area) {
+                max_red_area = area;
+                largest_red = boundingRect(contour);
+            }
+        }
+        if(max_red_area > 0) {
+            rectangle(display, largest_red, Scalar(0, 0, 255), 3);
+            putText(display, "RED", Point(largest_red.x, largest_red.y-10),
+                    FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
+        }
+        
+
+        contours.clear();
+        findContours(green_mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+        Rect largest_green;
+        double max_green_area = 0;
+        for(auto& contour : contours) {
+            double area = contourArea(contour);
+            if(area > 50 && area > max_green_area) {  
+                max_green_area = area;
+                largest_green = boundingRect(contour);
+            }
+        }
+        if(max_green_area > 0) {
+            rectangle(display, largest_green, Scalar(0, 255, 0), 3);
+            putText(display, "GREEN", Point(largest_green.x, largest_green.y-10),
+                    FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2);
+        }
+        
+      
+        
+      
+        
+        string status = "NO LIGHT";
+        if (max_red_area > 0) status = "RED LIGHT";
+        else if (max_green_area > 0) status = "GREEN LIGHT";
+        
+        putText(display, "Status: " + status, Point(10, 90), 
+                FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 2);
+        
+    
+        imshow("Traffic Light Detection", display);
+       
+        
+        if (waitKey(1) == 27) break;
+    }
+    
+    cap.release();
+    destroyAllWindows();
+    return 0;
+}
+ 
