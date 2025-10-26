@@ -1,43 +1,86 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
+#include <unistd.h>
 
 using namespace cv;
 using namespace std;
 
 int main() {
+ 
+    
+
+
+
+    
     VideoCapture cap("TrafficLight.mp4");
-   
+    if (!cap.isOpened()) {
+        cout << "无法打开 TrafficLight.mp4！" << endl;
+       
+        return -1;
+    }
+    cout << "功打开输入视频" << endl;
+
+
+    double fps = cap.get(CAP_PROP_FPS);
+    int frame_width = cap.get(CAP_PROP_FRAME_WIDTH);
+    int frame_height = cap.get(CAP_PROP_FRAME_HEIGHT);
+    Size frameSize(frame_width, frame_height);
+    
+    cout << "视频参数: " << frame_width << "x" << frame_height << " FPS:" << fps << endl;
+
+
+    cout << "正在创建输出视频 result.avi..." << endl;
+    VideoWriter writer("result.avi",
+        VideoWriter::fourcc('M','J','P','G'),
+        fps,
+        frameSize);
+
+    if (!writer.isOpened()) {
+        cout << " 错误：无法创建 result.avi！" << endl;
+        cap.release();
+        return -1;
+    }
+    cout << " 成功创建输出视频" << endl;
+
+
     Mat frame, hsv, red_mask, green_mask, display;
+    vector<vector<Point>> contours;
+  
+    int frameCount = 0;
     
     while (true) {
         cap >> frame;
-        if (frame.empty()) break;
+        if (frame.empty()) {
+            cout << "视频处理完成，共处理 " << frameCount << " 帧" << endl;
+            break;
+        }
         
+        frameCount++;
         frame.copyTo(display);
-        cvtColor(frame, hsv, COLOR_BGR2HSV);
         
-     
+
+        cvtColor(frame, hsv, COLOR_BGR2HSV);
+
+
         Mat red_mask1, red_mask2;
         inRange(hsv, Scalar(0, 70, 50), Scalar(10, 255, 255), red_mask1);
         inRange(hsv, Scalar(170, 70, 50), Scalar(180, 255, 255), red_mask2);
         red_mask = red_mask1 | red_mask2;
-        
+
 
         Mat kernel_red = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
         morphologyEx(red_mask, red_mask, MORPH_OPEN, kernel_red);
         morphologyEx(red_mask, red_mask, MORPH_CLOSE, kernel_red);
-        
-        
-        inRange(hsv, Scalar(50, 95, 95), Scalar(115, 255, 255), green_mask);
-        
-   
+
+       
+        inRange(hsv, Scalar(55, 95, 95), Scalar(120, 255, 255), green_mask);
         Mat kernel_green = getStructuringElement(MORPH_ELLIPSE, Size(7, 7));
         morphologyEx(green_mask, green_mask, MORPH_OPEN, kernel_green);
         morphologyEx(green_mask, green_mask, MORPH_CLOSE, kernel_green);
-        
-    
-        vector<vector<Point>> contours;
+
+   
+        contours.clear();
         findContours(red_mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
         Rect largest_red;
         double max_red_area = 0;
@@ -50,48 +93,62 @@ int main() {
         }
         if(max_red_area > 0) {
             rectangle(display, largest_red, Scalar(0, 0, 255), 3);
-            putText(display, "RED", Point(largest_red.x, largest_red.y-10),
-                    FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
+            putText(display, "RED", Point(largest_red.x, largest_red.y-10), 
+                FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
         }
-        
 
+        // 绿色轮廓检测
         contours.clear();
         findContours(green_mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
         Rect largest_green;
         double max_green_area = 0;
         for(auto& contour : contours) {
             double area = contourArea(contour);
-            if(area > 50 && area > max_green_area) {  
+            if(area > 50 && area > max_green_area) {
                 max_green_area = area;
                 largest_green = boundingRect(contour);
             }
         }
         if(max_green_area > 0) {
             rectangle(display, largest_green, Scalar(0, 255, 0), 3);
-            putText(display, "GREEN", Point(largest_green.x, largest_green.y-10),
-                    FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2);
+            putText(display, "GREEN", Point(largest_green.x, largest_green.y-10), 
+                FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2);
         }
-        
-      
-        
-      
-        
+
+    
         string status = "NO LIGHT";
         if (max_red_area > 0) status = "RED LIGHT";
         else if (max_green_area > 0) status = "GREEN LIGHT";
-        
-        putText(display, "Status: " + status, Point(10, 90), 
+        putText(display, "Status: " + status, Point(10, 30), 
                 FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 2);
+
+     
+        writer.write(display);
+
+     
+        if (frameCount % 30 == 0) {
+            cout << " 已处理 " << frameCount << " 帧" << endl;
+        }
         
-    
         imshow("Traffic Light Detection", display);
-       
-        
         if (waitKey(1) == 27) break;
     }
-    
+
+  
     cap.release();
+    writer.release();
     destroyAllWindows();
+    
+    cout << "程序执行完成" << endl;
+    cout << " 输出视频位置: " << cwd << "/result.avi" << endl;
+    
+    
+    FILE* file = fopen("result.avi", "r");
+    if (file) {
+        fclose(file);
+        cout << "result.avi 文件已生成" << endl;
+    } else {
+        cout << "result.avi 文件未找到" << endl;
+    }
+
     return 0;
-}
- 
